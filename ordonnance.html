@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modification de l'heure de demande</title>
+  <title>Modification de l'ordonnance</title>
   <style>
     body { font-family: 'Segoe UI', sans-serif; background-color: #f5f7fa; padding: 20px; }
     .container { background: #fff; padding: 20px; border-radius: 10px; max-width: 800px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -21,7 +21,7 @@
 </head>
 <body>
 <div class="container">
-  <h2>Modification de l'heure de demande</h2>
+  <h2>Modification de l'ordonnance</h2>
   <div id="ordonnanceContainer"></div>
   <button id="saveBtn">Enregistrer</button>
 </div>
@@ -66,7 +66,7 @@
             <div class="horaires-container"></div>
             <button type="button" class="add-horaire">+ Ajouter une heure</button>
             <label>Repas</label><input type="text" class="repas" value="${med.repas || ''}">
-            <label>Durée</label><input type="text" class="duree" value="${med.duree || med.durée || ''}">
+            <label>Durée</label><input type="text" class="duree" value="${med.duree || ''}">
           `;
 
           container.appendChild(medDiv);
