@@ -1,15 +1,30 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Modifier Ordonnance</title>
- 
-  <script type="module">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modification de l'heure de demande</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background-color: #f5f7fa; padding: 20px; }
+    .container { background: #fff; padding: 20px; border-radius: 10px; max-width: 800px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #123456; }
+    .medicament { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
+    label { font-weight: bold; display: block; margin-top: 10px; }
+    input { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 5px; }
+    button { background-color: #123456; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-top: 20px; }
+    button:disabled { background-color: grey; cursor: not-allowed; }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<div class="container">
+  <h2>Modification de l'heure de demande</h2>
+  <div id="ordonnanceContainer"></div>
+  <button id="saveBtn">Enregistrer</button>
+</div>
 
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-
-    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+<script>
  const firebaseConfig = {
   apiKey: "AIzaSyA-L-WFc9wjYU20_fBsACKhXhctSgG2huc",
   authDomain: "hakdak-26489.firebaseapp.com",
@@ -18,197 +33,68 @@
   messagingSenderId: "549900038178",
   appId: "1:549900038178:web:1fa052327e635f725c1a7b"
 };
-    const app = initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-    const db = getFirestore(app);
- 
-    async function chargerOrdonnance() {
+  const ordonnanceId = new URLSearchParams(window.location.search).get("id");
+  const container = document.getElementById("ordonnanceContainer");
+  const saveBtn = document.getElementById("saveBtn");
+  let ordonnanceDoc = null;
 
-      const id = window.location.pathname.split("/").pop();
+  if (ordonnanceId) {
+    db.collection("ordonances").doc(ordonnanceId).get().then((doc) => {
+      if (doc.exists) {
+        ordonnanceDoc = doc;
+        const data = doc.data();
 
-      const ordonnanceRef = doc(db, "ordonnances", id);
+        if (data.modifieParPharmacien) {
+          container.innerHTML = "<p style='color:red;'>Cette ordonnance a déjà été modifiée.</p>";
+          saveBtn.disabled = true;
+          return;
+        }
 
-      const ordonnanceSnap = await getDoc(ordonnanceRef);
- 
-      if (ordonnanceSnap.exists()) {
-
-        const data = ordonnanceSnap.data();
-
-        document.getElementById("patient").textContent = data.patient_name;
- 
-        const table = document.getElementById("table-prescriptions");
-
-        data.prescriptions.forEach((pres, index) => {
-
-          const row = table.insertRow();
-
-          row.innerHTML = `
-<td>${pres.medicament}</td>
-<td>${pres.dose}</td>
-<td><input type="text" value="${(pres.horaires || []).join(", ")}" data-index="${index}" data-key="horaires"></td>
-<td><input type="text" value="${pres.repas}" data-index="${index}" data-key="repas"></td>
-<td><input type="text" value="${pres.duree}" data-index="${index}" data-key="duree"></td>
-
+        data.prescriptions.forEach((med, index) => {
+          const medDiv = document.createElement("div");
+          medDiv.className = "medicament";
+          medDiv.innerHTML = `
+            <h4>Médicament ${index + 1}</h4>
+            <label>Médicament</label><input type="text" value="${med.medicament || ''}" disabled>
+            <label>Dose</label><input type="text" class="dose" value="${med.dose || ''}">
+            <label>Horaires</label><input type="text" class="horaires" value="${(med.horaires || []).join(', ')}">
+            <label>Repas</label><input type="text" class="repas" value="${med.repas || ''}">
+            <label>Durée</label><input type="text" class="duree" value="${med.duree || med.durée || ''}">
           `;
-
+          container.appendChild(medDiv);
         });
- 
-        const isModified = data.modified_by_pharmacien === true;
 
-        if (isModified) {
-
-          document.getElementById("save-btn").disabled = true;
-
-          document.getElementById("msg").textContent = "Cette ordonnance a déjà été modifiée.";
-
-        }
-
+      } else {
+        container.innerHTML = "<p>Ordonnance introuvable.</p>";
       }
+    });
+  }
 
-    }
- 
-    async function enregistrerModifs() {
-
-      const id = window.location.pathname.split("/").pop();
-
-      const ordonnanceRef = doc(db, "ordonnances", id);
-
-      const ordonnanceSnap = await getDoc(ordonnanceRef);
- 
-      if (!ordonnanceSnap.exists()) return;
- 
-      const data = ordonnanceSnap.data();
-
-      const inputs = document.querySelectorAll("input");
- 
-      inputs.forEach(input => {
-
-        const index = input.dataset.index;
-
-        const key = input.dataset.key;
- 
-        if (key === "horaires") {
-
-          data.prescriptions[index][key] = input.value.split(",").map(h => h.trim());
-
-        } else {
-
-          data.prescriptions[index][key] = input.value;
-
-        }
-
+  saveBtn.addEventListener("click", async () => {
+    const meds = document.querySelectorAll(".medicament");
+    const updated = [];
+    meds.forEach(med => {
+      updated.push({
+        medicament: med.querySelector("input[disabled]").value,
+        dose: med.querySelector(".dose").value,
+        horaires: med.querySelector(".horaires").value.split(',').map(h => h.trim()),
+        repas: med.querySelector(".repas").value,
+        duree: med.querySelector(".duree").value,
       });
- 
-      await updateDoc(ordonnanceRef, {
+    });
 
-        prescriptions: data.prescriptions,
+    await db.collection("ordonances").doc(ordonnanceId).update({
+      prescriptions: updated,
+      modifieParPharmacien: true,
+    });
 
-        modified_by_pharmacien: true
-
-      });
- 
-      alert("Ordonnance mise à jour avec succès !");
-
-      window.location.reload();
-
-    }
- 
-    window.addEventListener("DOMContentLoaded", chargerOrdonnance);
-
-    window.enregistrerModifs = enregistrerModifs;
+    alert("Modifications enregistrées.");
+    saveBtn.disabled = true;
+    document.querySelectorAll("input").forEach(input => input.disabled = true);
+  });
 </script>
- 
-  <style>
-
-    body {
-
-      font-family: Arial;
-
-      padding: 20px;
-
-      background: #f3f6fc;
-
-    }
-
-    table {
-
-      border-collapse: collapse;
-
-      width: 100%;
-
-      margin-top: 20px;
-
-    }
-
-    th, td {
-
-      border: 1px solid #ddd;
-
-      padding: 8px;
-
-    }
-
-    th {
-
-      background-color: #141D37;
-
-      color: white;
-
-    }
-
-    input {
-
-      width: 100%;
-
-      padding: 4px;
-
-    }
-
-    button {
-
-      margin-top: 20px;
-
-      padding: 10px 15px;
-
-      background-color: #141D37;
-
-      color: white;
-
-      border: none;
-
-      cursor: pointer;
-
-      border-radius: 4px;
-
-    }
-
-    #msg {
-
-      color: red;
-
-      margin-top: 10px;
-
-    }
-</style>
-</head>
- 
-<body>
-<h2>Modification de l'ordonnance</h2>
-<p><strong>Patient :</strong> <span id="patient"></span></p>
- 
-  <table id="table-prescriptions">
-<tr>
-<th>Médicament</th>
-<th>Dose</th>
-<th>Horaires</th>
-<th>Repas</th>
-<th>Durée</th>
-</tr>
-</table>
- 
-  <button id="save-btn" onclick="enregistrerModifs()">Enregistrer les modifications</button>
-<p id="msg"></p>
 </body>
 </html>
-
- 
