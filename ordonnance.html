@@ -13,6 +13,8 @@
     input { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ccc; border-radius: 5px; }
     button { background-color: #123456; color: white; padding: 10px 20px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-top: 20px; }
     button:disabled { background-color: grey; cursor: not-allowed; }
+    .horaire-input { display: flex; gap: 8px; align-items: center; margin-top: 5px; }
+    .add-horaire { margin-top: 10px; font-size: 14px; background-color: #4caf50; }
   </style>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
@@ -25,14 +27,14 @@
 </div>
 
 <script>
- const firebaseConfig = {
-  apiKey: "AIzaSyA-L-WFc9wjYU20_fBsACKhXhctSgG2huc",
-  authDomain: "hakdak-26489.firebaseapp.com",
-  projectId: "hakdak-26489",
-  storageBucket: "hakdak-26489.firebasestorage.app",
-  messagingSenderId: "549900038178",
-  appId: "1:549900038178:web:1fa052327e635f725c1a7b"
-};
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_AUTH_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_STORAGE_BUCKET",
+    messagingSenderId: "YOUR_MSG_ID",
+    appId: "YOUR_APP_ID"
+  };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
@@ -60,11 +62,35 @@
             <h4>Médicament ${index + 1}</h4>
             <label>Médicament</label><input type="text" value="${med.medicament || ''}" disabled>
             <label>Dose</label><input type="text" class="dose" value="${med.dose || ''}">
-            <label>Horaires</label><input type="text" class="horaires" value="${(med.horaires || []).join(', ')}">
+            <label>Horaires</label>
+            <div class="horaires-container"></div>
+            <button type="button" class="add-horaire">+ Ajouter une heure</button>
             <label>Repas</label><input type="text" class="repas" value="${med.repas || ''}">
             <label>Durée</label><input type="text" class="duree" value="${med.duree || med.durée || ''}">
           `;
+
           container.appendChild(medDiv);
+
+          const horairesContainer = medDiv.querySelector(".horaires-container");
+          const horaires = med.horaires || [];
+          horaires.forEach(h => {
+            const horaireInput = document.createElement("div");
+            horaireInput.className = "horaire-input";
+            horaireInput.innerHTML = `<input type="text" class="horaire" value="${h}"> <button type="button" class="remove-horaire">×</button>`;
+            horairesContainer.appendChild(horaireInput);
+          });
+
+          medDiv.querySelector(".add-horaire").addEventListener("click", () => {
+            const horaireInput = document.createElement("div");
+            horaireInput.className = "horaire-input";
+            horaireInput.innerHTML = `<input type="text" class="horaire"> <button type="button" class="remove-horaire">×</button>`;
+            horairesContainer.appendChild(horaireInput);
+            horaireInput.querySelector(".remove-horaire").onclick = () => horaireInput.remove();
+          });
+
+          horairesContainer.querySelectorAll(".remove-horaire").forEach(btn => {
+            btn.onclick = () => btn.parentElement.remove();
+          });
         });
 
       } else {
@@ -77,10 +103,11 @@
     const meds = document.querySelectorAll(".medicament");
     const updated = [];
     meds.forEach(med => {
+      const horaires = Array.from(med.querySelectorAll(".horaire")).map(h => h.value.trim()).filter(Boolean);
       updated.push({
         medicament: med.querySelector("input[disabled]").value,
         dose: med.querySelector(".dose").value,
-        horaires: med.querySelector(".horaires").value.split(',').map(h => h.trim()),
+        horaires,
         repas: med.querySelector(".repas").value,
         duree: med.querySelector(".duree").value,
       });
@@ -93,7 +120,7 @@
 
     alert("Modifications enregistrées.");
     saveBtn.disabled = true;
-    document.querySelectorAll("input").forEach(input => input.disabled = true);
+    document.querySelectorAll("input, button").forEach(el => el.disabled = true);
   });
 </script>
 </body>
